@@ -25,6 +25,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-amqp'
     implementation 'org.postgresql:postgresql'
     implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'org.flywaydb:flyway-core'
 
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
