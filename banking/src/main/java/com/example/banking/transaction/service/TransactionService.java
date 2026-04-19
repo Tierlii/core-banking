@@ -9,6 +9,7 @@ import com.example.banking.common.exception.InsufficientFundsException;
 import com.example.banking.common.exception.InvalidCurrencyException;
 import com.example.banking.transaction.dto.CreateTransactionRequest;
 import com.example.banking.transaction.dto.CreateTransactionResponse;
+import com.example.banking.transaction.dto.TransactionResponse;
 import com.example.banking.transaction.mapper.TransactionMapper;
 import com.example.banking.transaction.model.Transaction;
 import com.example.banking.transaction.validation.TransactionValidator;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Service
 public class TransactionService {
@@ -84,6 +86,24 @@ public class TransactionService {
                 transaction.getDescription(),
                 transaction.getBalanceAfterTransaction()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<TransactionResponse> getTransactions(Long accountId) {
+        if (!accountMapper.existsById(accountId)) {
+            throw new AccountNotFoundException(accountId);
+        }
+
+        return transactionMapper.findByAccountId(accountId).stream()
+                .map(transaction -> new TransactionResponse(
+                        transaction.getAccountId(),
+                        transaction.getId(),
+                        transaction.getAmount(),
+                        transaction.getCurrency(),
+                        transaction.getDirection(),
+                        transaction.getDescription()
+                ))
+                .toList();
     }
 
     private BigDecimal calculateUpdatedBalance(Long accountId,
