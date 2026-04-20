@@ -7,6 +7,8 @@ import com.example.banking.common.enums.TransactionDirection;
 import com.example.banking.common.exception.AccountNotFoundException;
 import com.example.banking.common.exception.InsufficientFundsException;
 import com.example.banking.common.exception.InvalidCurrencyException;
+import com.example.banking.messaging.mapper.EventMapper;
+import com.example.banking.messaging.publisher.EventPublisher;
 import com.example.banking.transaction.dto.CreateTransactionRequest;
 import com.example.banking.transaction.dto.CreateTransactionResponse;
 import com.example.banking.transaction.dto.TransactionResponse;
@@ -26,15 +28,21 @@ public class TransactionService {
     private final AccountMapper accountMapper;
     private final BalanceMapper balanceMapper;
     private final TransactionValidator transactionValidator;
+    private final EventPublisher eventPublisher;
+    private final EventMapper eventMapper;
 
     public TransactionService(TransactionMapper transactionMapper,
                               AccountMapper accountMapper,
                               BalanceMapper balanceMapper,
-                              TransactionValidator transactionValidator) {
+                              TransactionValidator transactionValidator,
+                              EventPublisher eventPublisher,
+                              EventMapper eventMapper) {
         this.transactionMapper = transactionMapper;
         this.accountMapper = accountMapper;
         this.balanceMapper = balanceMapper;
         this.transactionValidator = transactionValidator;
+        this.eventPublisher = eventPublisher;
+        this.eventMapper = eventMapper;
     }
 
     @Transactional
@@ -66,6 +74,7 @@ public class TransactionService {
         );
 
         balanceMapper.updateAvailableAmount(balance.getId(), updatedBalance);
+        balance.setAvailableAmount(updatedBalance);
 
         Transaction transaction = new Transaction();
         transaction.setAccountId(request.accountId());
@@ -76,6 +85,9 @@ public class TransactionService {
         transaction.setBalanceAfterTransaction(updatedBalance);
 
         transactionMapper.insert(transaction);
+
+        eventPublisher.publish(eventMapper.toBalanceUpdatedEvent(balance));
+        eventPublisher.publish(eventMapper.toTransactionCreatedEvent(transaction));
 
         return new CreateTransactionResponse(
                 transaction.getAccountId(),

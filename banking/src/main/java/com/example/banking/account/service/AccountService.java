@@ -10,6 +10,8 @@ import com.example.banking.account.model.Account;
 import com.example.banking.account.model.Balance;
 import com.example.banking.account.validation.AccountValidator;
 import com.example.banking.common.exception.AccountNotFoundException;
+import com.example.banking.messaging.mapper.EventMapper;
+import com.example.banking.messaging.publisher.EventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,13 +26,19 @@ public class AccountService {
     private final AccountMapper accountMapper;
     private final BalanceMapper balanceMapper;
     private final AccountValidator accountValidator;
+    private final EventPublisher eventPublisher;
+    private final EventMapper eventMapper;
 
     public AccountService(AccountMapper accountMapper,
                           BalanceMapper balanceMapper,
-                          AccountValidator accountValidator) {
+                          AccountValidator accountValidator,
+                          EventPublisher eventPublisher,
+                          EventMapper eventMapper) {
         this.accountMapper = accountMapper;
         this.balanceMapper = balanceMapper;
         this.accountValidator = accountValidator;
+        this.eventPublisher = eventPublisher;
+        this.eventMapper = eventMapper;
     }
 
     @Transactional
@@ -53,6 +61,11 @@ public class AccountService {
         }
 
         List<Balance> balances = balanceMapper.findByAccountId(account.getId());
+
+        eventPublisher.publish(eventMapper.toAccountCreatedEvent(account, request));
+        for (Balance balance : balances) {
+            eventPublisher.publish(eventMapper.toBalanceUpdatedEvent(balance));
+        }
 
         return new CreateAccountResponse(
                 account.getId(),
