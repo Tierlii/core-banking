@@ -44,9 +44,18 @@ tasks.named('test') {
 }
 
 jacoco {
-    toolVersion = '0.8.11'
+    toolVersion = "0.8.10"
 }
 
-tasks.jacocoTestReport {
+tasks.test {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
     dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
 }
